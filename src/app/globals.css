@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+/* Street-side warmth: paper cream, turmeric, chilli, curry leaf, steel.
+   Always light: the brand is sunlight and street carts, not a night-mode dashboard. */
+:root {
+  color-scheme: light;
+  --background: #fbf3e4;
+  --surface: #fffdf8;
+  --ink: #2a1e14;
+  --muted: #7a6a58;
+  --line: #eadcc4;
+  --brand: #c8361d; /* chilli */
+  --brand-soft: #fbe6df;
+  --gold: #f2b705; /* turmeric */
+  --gold-soft: #fff1c2;
+  --grow: #2f7d32; /* curry leaf */
+  --grow-soft: #e3f1e0;
+  --steel: #8a8f98;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-grow: var(--grow);
+  --color-grow-soft: var(--grow-soft);
+  --color-steel: var(--steel);
+  --font-sans: var(--font-hind);
+  --font-display: var(--font-yatra);
+}
+
+body {
+  background-color: var(--background);
+  /* Faint paper grain */
+  background-image:
+    radial-gradient(rgb(122 106 88 / 0.06) 1px, transparent 1px),
+    radial-gradient(rgb(122 106 88 / 0.04) 1px, transparent 1px);
+  background-size: 18px 18px, 29px 29px;
+  background-position: 0 0, 9px 13px;
+  color: var(--ink);
+}
+
+/* Painted-signboard heading: chilli text over a turmeric brush stroke */
+@utility signboard {
+  font-family: var(--font-yatra);
+  color: var(--brand);
+  background-image: linear-gradient(transparent 62%, var(--gold-soft) 62%, var(--gold-soft) 92%, transparent 92%);
+  padding-inline: 0.1em;
+}
+
+/* Festive bunting strip used under page headers */
+@utility bunting {
+  height: 10px;
+  background:
+    linear-gradient(135deg, var(--brand) 25%, transparent 25%) 0 0 / 20px 10px,
+    linear-gradient(225deg, var(--brand) 25%, transparent 25%) 0 0 / 20px 10px,
+    linear-gradient(135deg, var(--gold) 25%, transparent 25%) 10px 0 / 20px 10px,
+    linear-gradient(225deg, var(--gold) 25%, transparent 25%) 10px 0 / 20px 10px;
+  opacity: 0.85;
+}
+
+@utility input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  padding: 0.625rem 0.75rem;
+  font-size: 0.95rem;
+  outline: none;
+  &:focus {
+    border-color: var(--brand);
+  }
+}
+
+/* Leaflet emoji markers */
+.stall-pin {
+  background: none;
+  border: none;
+}
+.stall-pin span {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  background: var(--surface);
+  border: 2.5px solid var(--brand);
+  font-size: 18px;
+  box-shadow: 0 2px 6px rgb(42 30 20 / 0.3);
+}
+.stall-pin--osm span {
+  width: 26px;
+  height: 26px;
+  font-size: 13px;
+  border: 1.5px solid var(--steel);
+}
