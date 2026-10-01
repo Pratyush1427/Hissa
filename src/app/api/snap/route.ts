@@ -1,8 +1,32 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { hasClaudeCredentials, readStallPhoto, SnapRefusedError, type SnapImage } from "@/lib/ai/snap";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createClient } from "@/lib/supabase/server";
 
 const MAX_BYTES = 5 * 1024 * 1024; // Claude's per-image limit
 const MEDIA_TYPES = new Set<SnapImage["mediaType"]>(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
+// Each photo is a paid AI call, so only signed-in players get one, and only a few at a time.
+const WINDOW_MS = 10 * 60 * 1000;
+const MAX_PER_WINDOW = 10;
+// Per server instance; enough to stop a runaway client, not a distributed attack.
+const recentCalls = new Map<string, number[]>();
+
+function withinLimit(userId: string) {
+  const now = Date.now();
+  const calls = (recentCalls.get(userId) ?? []).filter((t) => now - t < WINDOW_MS);
+  const ok = calls.length < MAX_PER_WINDOW;
+  if (ok) calls.push(now);
+  recentCalls.set(userId, calls);
+  return ok;
+}
+
+async function signedInUserId() {
+  if (!isSupabaseConfigured()) return null;
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  return data?.claims?.sub ?? null;
+}
 
 export async function POST(request: Request) {
   const form = await request.formData();
@@ -20,9 +44,16 @@ export async function POST(request: Request) {
     return Response.json({ error: "That photo is too large. Try one under 5 MB." }, { status: 413 });
   }
 
-  // Without an AI key there's nothing to read the photo with: the client falls back to manual entry.
+  // No AI key, or nobody signed in: no AI call. The client falls back to manual entry (or a demo sample).
   if (!hasClaudeCredentials()) {
     return Response.json({ mode: "manual" });
+  }
+  const userId = await signedInUserId();
+  if (!userId) {
+    return Response.json({ mode: "manual" });
+  }
+  if (!withinLimit(userId)) {
+    return Response.json({ error: "You've read a lot of photos just now. Try again in a few minutes." }, { status: 429 });
   }
 
   try {

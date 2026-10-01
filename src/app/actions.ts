@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { MODE_COOKIE, type Mode } from "@/lib/mode";
+import { safeNext } from "@/lib/safe-next";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import type { SnapResult } from "@/lib/ai/snap";
@@ -22,10 +23,6 @@ export async function setMode(mode: Mode) {
 
 export type AuthState = { error?: string } | undefined;
 
-function safeNext(value: FormDataEntryValue | null) {
-  const next = typeof value === "string" ? value : "";
-  return next.startsWith("/") && !next.startsWith("//") ? next : "/profile";
-}
 
 export async function signIn(_: AuthState, form: FormData): Promise<AuthState> {
   if (!isSupabaseConfigured()) return { error: "Live mode isn't set up yet." };

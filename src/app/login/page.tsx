@@ -2,11 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import AuthForm from "@/components/AuthForm";
 import { getMyProfile } from "@/lib/data/live";
+import { safeNext } from "@/lib/safe-next";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { next } = await searchParams;
-  const target = typeof next === "string" && next.startsWith("/") && !next.startsWith("//") ? next : "/profile";
+  const target = safeNext(next);
 
   if (!isSupabaseConfigured()) {
     return (
