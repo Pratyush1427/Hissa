@@ -18,6 +18,23 @@ type Listing = {
   dishes: SnapResult["dishes"];
 };
 
+// Demo mode only: what an AI read of a menu board looks like, when no AI key is configured.
+const DEMO_SAMPLE: SnapResult = {
+  isFoodStall: true,
+  name: "Shree Annapoorna Gobi Stall",
+  cuisineTags: ["Gobi Manchurian", "Evening"],
+  veg: true,
+  dishes: [
+    { name: "Gobi Manchurian (dry)", original: "ಗೋಬಿ ಮಂಚೂರಿ", price: 60 },
+    { name: "Gobi Rice", original: null, price: 70 },
+    { name: "Mushroom Chilli", original: null, price: 80 },
+  ],
+  languages: ["Kannada", "English"],
+  note: "",
+};
+
+type Banner = { kind: "ai" | "sample" | "manual"; text: string };
+
 // Claude reads images best at up to ~1568px on the long edge; larger only adds upload time.
 const MAX_EDGE = 1568;
 
@@ -53,7 +70,8 @@ export default function SuggestFlow({
   const [submitting, startSubmitting] = useTransition();
   const [photo, setPhoto] = useState<string | null>(null);
   const [listing, setListing] = useState<Listing | null>(null);
-  const [banner, setBanner] = useState<{ demo: boolean; text: string } | null>(null);
+  const [banner, setBanner] = useState<Banner | null>(null);
+  const [newDish, setNewDish] = useState({ name: "", price: "" });
   const [problem, setProblem] = useState("");
   const areaOptions = prefill && !AREAS.includes(prefill.area as (typeof AREAS)[number]) ? [prefill.area, ...AREAS] : AREAS;
 
@@ -77,10 +95,21 @@ export default function SuggestFlow({
 
     try {
       const res = await fetch("/api/snap", { method: "POST", body });
-      const data: { mode?: "live" | "demo"; result?: SnapResult; error?: string } = await res.json();
-      if (!res.ok || !data.result) throw new Error(data.error ?? "Something went wrong reading the photo.");
+      const data: { mode?: "live" | "manual"; result?: SnapResult; error?: string } = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Something went wrong reading the photo.");
 
-      const r = data.result;
+      // No AI available: Demo mode shows a labelled sample; Live mode lets the player type it in.
+      if (data.mode === "manual" && mode === "live") {
+        setListing({ name: prefill?.name ?? "", area: prefill?.area ?? "", tags: "", veg: false, dishes: [] });
+        setBanner({
+          kind: "manual",
+          text: "Fill in the stall's details below. Automatic menu reading from photos is coming soon.",
+        });
+        setStep("review");
+        return;
+      }
+      const r = data.mode === "manual" ? DEMO_SAMPLE : data.result;
+      if (!r) throw new Error("Something went wrong reading the photo.");
       if (!r.isFoodStall) {
         setProblem(r.note || "This doesn't look like a food stall or menu. Try another photo.");
         setStep("problem");
@@ -93,10 +122,11 @@ export default function SuggestFlow({
         veg: r.veg ?? false,
         dishes: r.dishes,
       });
-      setBanner({
-        demo: data.mode === "demo",
-        text: data.mode === "demo" ? r.note : `${r.languages.length ? `Read ${r.languages.join(" + ")}. ` : ""}${r.note}`,
-      });
+      setBanner(
+        data.mode === "manual"
+          ? { kind: "sample", text: "Sample result. In the full app, AI reads the dishes and prices from your photo." }
+          : { kind: "ai", text: `${r.languages.length ? `Read ${r.languages.join(" + ")}. ` : ""}${r.note}` },
+      );
       setStep("review");
     } catch (err) {
       setProblem(err instanceof Error ? err.message : "Something went wrong reading the photo.");
@@ -165,8 +195,8 @@ export default function SuggestFlow({
         </h1>
         <p className="mt-1 text-muted">
           {prefill
-            ? "Add a photo of the stall or its menu board. AI reads the dishes and prices, and other critics vouch to bring it into Hissa."
-            : "Snap the stall or its menu board. AI fills in the details, and other critics vouch to bring it live."}
+            ? "Add a photo of the stall or its menu board, fill in what you know, and other critics vouch to bring it into Hissa."
+            : "Snap the stall or its menu board, add the details, and other critics vouch to bring it live."}
         </p>
       </header>
 
@@ -218,9 +248,9 @@ export default function SuggestFlow({
         >
           {banner && (
             <p
-              className={`rounded-xl p-3 text-sm ${banner.demo ? "bg-gold-soft text-ink" : "bg-grow-soft text-grow"}`}
+              className={`rounded-xl p-3 text-sm ${banner.kind === "ai" ? "bg-grow-soft text-grow" : "bg-gold-soft text-ink"}`}
             >
-              {banner.demo ? "🧪 " : "✨ Filled in by AI. "}
+              {banner.kind === "ai" ? "✨ Filled in by AI. " : banner.kind === "sample" ? "🧪 " : "✍️ "}
               {banner.text}
             </p>
           )}
@@ -255,10 +285,10 @@ export default function SuggestFlow({
               className="input"
             />
           </Field>
-          <Field label={`Dishes found on the board · ${listing.dishes.length}`}>
+          <Field label={banner?.kind === "manual" ? "Dishes (optional)" : `Dishes found on the board · ${listing.dishes.length}`}>
             {listing.dishes.length === 0 ? (
               <p className="rounded-xl border-2 border-dashed border-line p-3 text-sm text-muted">
-                No dishes were readable. Critics can add them later.
+                {banner?.kind === "manual" ? "Add a few dishes and their prices below." : "No dishes were readable. Add them below."}
               </p>
             ) : (
               <ul className="rounded-xl border-2 border-dashed border-line bg-surface px-3 py-1">
@@ -282,6 +312,39 @@ export default function SuggestFlow({
                 ))}
               </ul>
             )}
+            <div className="mt-2 flex gap-2">
+              <input
+                value={newDish.name}
+                onChange={(e) => setNewDish({ ...newDish, name: e.target.value })}
+                placeholder="Dish, e.g. Masala Dosa"
+                maxLength={60}
+                className="input"
+              />
+              <input
+                value={newDish.price}
+                onChange={(e) => setNewDish({ ...newDish, price: e.target.value.replace(/\D/g, "") })}
+                inputMode="numeric"
+                placeholder="₹"
+                className="input w-20"
+              />
+              <button
+                type="button"
+                disabled={!newDish.name.trim()}
+                onClick={() => {
+                  setListing({
+                    ...listing,
+                    dishes: [
+                      ...listing.dishes,
+                      { name: newDish.name.trim(), original: null, price: newDish.price ? Number(newDish.price) : null },
+                    ],
+                  });
+                  setNewDish({ name: "", price: "" });
+                }}
+                className="shrink-0 rounded-xl border-2 border-brand px-3 font-semibold text-brand disabled:opacity-40"
+              >
+                Add
+              </button>
+            </div>
           </Field>
           <label className="flex items-center gap-2">
             <input

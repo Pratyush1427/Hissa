@@ -1,23 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { hasClaudeCredentials, readStallPhoto, SnapRefusedError, type SnapImage, type SnapResult } from "@/lib/ai/snap";
+import { hasClaudeCredentials, readStallPhoto, SnapRefusedError, type SnapImage } from "@/lib/ai/snap";
 
 const MAX_BYTES = 5 * 1024 * 1024; // Claude's per-image limit
 const MEDIA_TYPES = new Set<SnapImage["mediaType"]>(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-
-// Shown when no API key is configured, so the flow still works in a demo.
-const DEMO_RESULT: SnapResult = {
-  isFoodStall: true,
-  name: "Shree Annapoorna Gobi Stall",
-  cuisineTags: ["Gobi Manchurian", "Evening"],
-  veg: true,
-  dishes: [
-    { name: "Gobi Manchurian (dry)", original: "ಗೋಬಿ ಮಂಚೂರಿ", price: 60 },
-    { name: "Gobi Rice", original: null, price: 70 },
-    { name: "Mushroom Chilli", original: null, price: 80 },
-  ],
-  languages: ["Kannada", "English"],
-  note: "Demo result: add ANTHROPIC_API_KEY to .env.local to read your real photo.",
-};
 
 export async function POST(request: Request) {
   const form = await request.formData();
@@ -35,8 +20,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "That photo is too large. Try one under 5 MB." }, { status: 413 });
   }
 
+  // Without an AI key there's nothing to read the photo with: the client falls back to manual entry.
   if (!hasClaudeCredentials()) {
-    return Response.json({ mode: "demo", result: DEMO_RESULT });
+    return Response.json({ mode: "manual" });
   }
 
   try {
