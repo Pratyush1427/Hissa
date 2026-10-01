@@ -1,10 +1,37 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
+import "maplibre-gl/dist/maplibre-gl.css";
+import { maplibreGL } from "@maplibre/maplibre-gl-leaflet";
 import L from "leaflet";
+import { setWorkerUrl } from "maplibre-gl";
 import Link from "next/link";
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import { useEffect } from "react";
+import { MapContainer, Marker, Popup, useMap } from "react-leaflet";
 import type { MapPin } from "@/lib/types";
+
+// OpenFreeMap "Liberty": soft colours with blue water. Free and open, with no key, signup or
+// domain registration, so the map works the same on localhost and on any deployed URL.
+const BASEMAP_STYLE = "https://tiles.openfreemap.org/styles/liberty";
+const BASEMAP_ATTRIBUTION =
+  '<a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank">OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>';
+
+// Served from /public (see scripts/copy-maplibre-worker.mjs); the bundled default URL doesn't resolve.
+setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
+
+function Basemap() {
+  const map = useMap();
+  useEffect(() => {
+    const layer = maplibreGL({ style: BASEMAP_STYLE });
+    layer.addTo(map);
+    map.attributionControl.addAttribution(BASEMAP_ATTRIBUTION);
+    return () => {
+      map.removeLayer(layer);
+      map.attributionControl.removeAttribution(BASEMAP_ATTRIBUTION);
+    };
+  }, [map]);
+  return null;
+}
 
 const BENGALURU: [number, number] = [12.9616, 77.6007];
 
@@ -28,13 +55,7 @@ export default function StallMap({
 }) {
   return (
     <MapContainer center={center} zoom={zoom} className="h-full w-full" scrollWheelZoom>
-      {/* Stadia "Alidade Smooth": light basemap with blue water. Keyless on localhost; a deployed
-          domain must be registered (free) at stadiamaps.com. Attribution is required. */}
-      <TileLayer
-        attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png"
-        maxZoom={20}
-      />
+      <Basemap />
       {/* Hissa stalls render last so they sit on top of OSM pins. */}
       {[...pins]
         .sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "osm" ? -1 : 1))

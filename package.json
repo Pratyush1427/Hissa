@@ -3,17 +3,21 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/copy-maplibre-worker.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/copy-maplibre-worker.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
+    "@maplibre/maplibre-gl-leaflet": "^0.1.4",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.49.0",
+    "maplibre-gl": "^6.11.2",
     "next": "16.3.8",
     "react": "19.2.8",
     "react-dom": "19.2.8",
