@@ -172,6 +172,9 @@ export type OsmSpot = {
   osmUrl: string;
 };
 
+/** What Discover needs per spot; the full record is only loaded on the spot's own page. */
+export type OsmSpotSummary = Pick<OsmSpot, "id" | "name" | "lat" | "lng" | "emoji" | "dish" | "cuisines" | "locality">;
+
 export type MapPin = {
   id: string;
   name: string;

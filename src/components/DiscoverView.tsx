@@ -1,10 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AREAS } from "@/lib/areas";
 import { overallRating } from "@/lib/format";
-import type { Area, Campaign, MapPin, OsmSpot, Stall } from "@/lib/types";
+import type { Area, Campaign, MapPin, OsmSpotSummary, Stall } from "@/lib/types";
 import SpotRow, { prettyCuisine } from "./SpotRow";
 import StallCard from "./StallCard";
 
@@ -19,14 +19,25 @@ const MAX_MAP_SPOTS = 400;
 
 export default function DiscoverView({
   stalls,
-  spots,
   campaigns,
 }: {
   stalls: Stall[];
-  spots: OsmSpot[];
   campaigns: Campaign[];
 }) {
   const campaignById = useMemo(() => new Map(campaigns.map((c) => [c.id, c])), [campaigns]);
+  // Loaded after the page appears, from a cached endpoint, so switching to Discover stays light.
+  const [spots, setSpots] = useState<OsmSpotSummary[] | null>(null);
+  const [spotsFailed, setSpotsFailed] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/spots")
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
+      .then((data: OsmSpotSummary[]) => !cancelled && setSpots(data))
+      .catch(() => !cancelled && setSpotsFailed(true));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [query, setQuery] = useState("");
   const [area, setArea] = useState<Area | "All">("All");
   const [vegOnly, setVegOnly] = useState(false);
@@ -54,7 +65,7 @@ export default function DiscoverView({
   // OSM rarely records veg status, so the veg filter only applies to Hissa stalls.
   const filteredSpots = useMemo(
     () =>
-      spots
+      (spots ?? [])
         .filter((s) => area === "All" || s.locality === area)
         .filter((s) => !q || s.name.toLowerCase().includes(q) || s.cuisines.some((c) => c.includes(q))),
     [spots, q, area],
@@ -169,11 +180,17 @@ export default function DiscoverView({
             <div>
               <h2 className="font-display text-xl">Waiting to be discovered</h2>
               <p className="text-sm text-muted">
-                {filteredSpots.length} spots nearby that no one on Hissa has tasted yet. Be the first critic and
+                {spots ? filteredSpots.length : "Hundreds of"} spots nearby that no one on Hissa has tasted yet. Be the first critic and
                 bring them in.
               </p>
             </div>
-            {spots.length === 0 ? (
+            {!spots && !spotsFailed ? (
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" aria-label="Loading nearby spots">
+                {Array.from({ length: 6 }, (_, i) => (
+                  <div key={i} className="h-[70px] animate-pulse rounded-2xl border-2 border-line bg-surface" />
+                ))}
+              </div>
+            ) : spotsFailed || spots?.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-line p-4 text-center text-sm text-muted">
                 Live spots are unavailable right now. Try again in a bit.
               </p>

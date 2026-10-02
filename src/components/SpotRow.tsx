@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { OsmSpot } from "@/lib/types";
+import type { OsmSpotSummary } from "@/lib/types";
 import StallPhoto from "./StallPhoto";
 
 export function prettyCuisine(cuisines: string[]) {
@@ -9,7 +9,7 @@ export function prettyCuisine(cuisines: string[]) {
     .join(", ");
 }
 
-export default function SpotRow({ spot }: { spot: OsmSpot }) {
+export default function SpotRow({ spot }: { spot: OsmSpotSummary }) {
   const cuisine = prettyCuisine(spot.cuisines);
   return (
     <Link

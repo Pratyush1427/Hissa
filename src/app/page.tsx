@@ -3,17 +3,11 @@ import DiscoverView from "@/components/DiscoverView";
 import ModeSwitch from "@/components/ModeSwitch";
 import StoryCard from "@/components/StoryCard";
 import { getData } from "@/lib/data";
-import { getOsmSpots } from "@/lib/osm";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export default async function Home() {
   const data = await getData();
-  const [stalls, campaigns, spots, viewer] = await Promise.all([
-    data.listStalls(),
-    data.listCampaigns(),
-    getOsmSpots(),
-    data.getViewer(),
-  ]);
+  const [stalls, campaigns, viewer] = await Promise.all([data.listStalls(), data.listCampaigns(), data.getViewer()]);
   const stallById = new Map(stalls.map((s) => [s.id, s]));
   const stories = campaigns.filter((c) => c.raised < c.goal && stallById.has(c.stallId));
 
@@ -55,7 +49,7 @@ export default async function Home() {
         </section>
       )}
 
-      <DiscoverView stalls={stalls} spots={spots} campaigns={campaigns} />
+      <DiscoverView stalls={stalls} campaigns={campaigns} />
     </main>
   );
 }
