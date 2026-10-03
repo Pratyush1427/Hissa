@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- The "Hissa" signboard: chilli H over a turmeric brush stroke on paper cream -->
+  <rect width="64" height="64" rx="14" fill="#fbf3e4"/>
+  <path fill="#f2b705" d="M6 38 C19 35.5 44 35 58 36.5 L56.5 39.5 L57.5 42 L56 45 L57 48.5 L55.5 51 C42 49.5 21 50 8 52.5 L9 49 L7 46 L8.5 43 L6.5 40.5 Z"/>
+  <path fill="#c8361d" d="M14.5 12.5 L25.5 11.5 L24.5 28 L39.5 27.5 L40 11.5 L51 10.5 L49 53 L38.5 54 L39.2 36.5 L24.3 37 L24 53 L13 54 Z"/>
+</svg>
